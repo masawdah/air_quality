@@ -407,3 +407,60 @@ def mask_tiff(geo_filename: str, input_filename: str, output_filename: str):
 
     with rasterio.open(output_filename, 'w', **out_meta) as dest:
         dest.write(out_image)
+
+def load_list_tiffs(datapath: str, 
+               feature: Tuple[FeatureType, str], 
+               filename: list,
+               image_dtype: np.generic = np.float32, 
+               no_data_value: float = np.nan, 
+               data_source: str = 's5p', 
+               offset: int = 2100):
+    """ Helper function to load the data sources provided as tiffs """
+    assert data_source in ['s5p', 'modis', 'era5', 'cams', 's3']
+    
+    tiles = filename
+
+    # only keep files
+    tiles = [tile for tile in tiles if not os.path.isdir(datapath/tile)]
+
+    # unzip tiffs if they have .gz extension and delete them
+    compressed_tiles = [tile for tile in tiles if tile.endswith('.gz')]
+    for ctile in compressed_tiles:
+        uctile = ctile.split('.gz')[0]
+        ungz_file(str(datapath/ctile), str(datapath/uctile), delete=True)
+    
+    tiles = [tile if not tile.endswith('.gz') else tile.split('.gz')[0]
+             for tile in tiles]
+    
+    zipped_tiles = [tile for tile in tiles if tile.endswith('.zip')]
+    for ztile in zipped_tiles:
+        unzip_file(str(datapath/ztile), str(datapath))
+        
+    tiles = tiles + [tile.replace('.zip', '.tif') for tile in zipped_tiles]
+    
+    # remove files which don't have .tif extension
+    tiles = [tile for tile in tiles if os.path.splitext(tile)[1] == '.tif']
+
+    timestamp_size = len(tiles) if feature[0].is_time_dependent() else None
+    
+    import_task = ImportFromTiff(feature=feature, 
+                                 folder=datapath,
+                                 image_dtype=image_dtype,
+                                 no_data_value=no_data_value,
+                                 timestamp_size=len(tiles))
+    import_names =(FeatureType.META_INFO, 'Names')
+    add_names_feature = AddFeature(import_names)
+
+    if not feature[0].is_time_dependent():
+        assert len(tiles) == 1
+        return import_task.execute(filename=tiles[0])
+    
+    assert len(tiles) >= 1
+    
+    eop = import_task.execute(filename=(sorted(tiles)))
+    eop.timestamp = TIMESTAMP_PARSER[data_source](sorted(tiles), offset)
+    ## Added by mohmmad
+    m = sorted(tiles)
+    add_names_feature.execute(eop,m)
+
+    return eop
