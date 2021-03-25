@@ -6,24 +6,8 @@ from rasterio.warp import calculate_default_transform, reproject, Resampling
 from typing import List, Union, Tuple, Optional
 import pandas as pd
 
-def polygrid(poly, res, crs):
-    """"Function to create a square polygon grid with a given resolution from a polygon bounding box"""
-    # Get corners
-    xmin,ymin,xmax,ymax = poly.total_bounds
-    # Define poly vertical and horizontal limits
-    cols = list(np.arange(xmin, xmax, res))
-    rows = list(np.arange(ymin, ymax, res))
-    rows.reverse()
-    # Create polygons
-    polygons = []
-    for x in cols:
-        for y in rows:
-            polygons.append(Polygon([(x,y), (x+res, y), (x+res, y+res), (x, y+res)]))
-    # Return gpd
-    grid = gpd.GeoDataFrame({'geometry':polygons}, crs=crs)
-    return grid
 
-def recpolygrid(poly, xres,yres, crs):
+def polygrid(poly, xres,yres, crs):
     """"Function to create a square polygon grid with a given resolution from a polygon bounding box"""
     # Get corners
     xmin,ymin,xmax,ymax = poly.total_bounds
