@@ -2,7 +2,7 @@
 The challenge is to downscale air quality products to a resolution that can be used on a local level. The focus is on the pollutants PM2.5 and NO2, which are amongst the most important to consider for health effects.
 
 
-## Proposed Solutions
+## The Solution
 
 Air quality data downscaled by Random Forest model between in-situ data and input data (NO2/PM2.5) and auxiliary data resampled to target resolution. The solution takes advantage of spatial variability of land cover and temporal variability of metrological data, by computing the percentage of land cover classes inside each pixel and the surrounded area and compute the statistics of ERA5 products for the same and previous days. In addition to daily statistics of other predictors like CAMS and MODIS. 
 
